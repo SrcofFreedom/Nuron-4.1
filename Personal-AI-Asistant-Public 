@@ -1,0 +1,186 @@
+import subprocess
+from flask import Flask, request
+import urllib.request
+import urllib.parse
+import json
+import re
+import os
+
+app = Flask(__name__)
+
+# ==========================================
+# 🔑 SÜNİ İNTELLEKT BEYNİ AYARLARI
+# ==========================================
+API_KEY = "AI API" 
+
+def media_tugmesi_bas(kod_deyeri):
+    """Media və səs düymələrini xətasız simulyasiya edir"""
+    vbs_yolu = "C:\\nuron_media.vbs"
+    try:
+        # VBS faylını təmiz şəkildə yaradırıq
+        with open(vbs_yolu, "w", encoding="utf-8") as f:
+            f.write(f'Set WshShell = CreateObject("WScript.Shell")\n')
+            f.write(f'WshShell.SendKeys chr({kod_deyeri})\n')
+        
+        # Faylı icra edirik
+        subprocess.run(["wscript.exe", vbs_yolu], timeout=5)
+        
+        # İşimiz bitəndən sonra faylı silirik ki, zibil qalmasın
+        if os.path.exists(vbs_yolu):
+            os.remove(vbs_yolu)
+    except Exception as e:
+        print(f"[Media Xətası]: {e}")
+
+@app.route('/')
+def ana_sehife():
+    return "Nuron 4.1 Xətasız Sistem Aktivdir!"
+
+@app.route('/emr')
+def emr_qebul_et():
+    xam_url = request.url
+    komanda = ""
+    
+    if "komanda=" in xam_url:
+        try:
+            hisse = xam_url.split("komanda=")[1].split("&")[0]
+            komanda = urllib.parse.unquote(hisse, encoding='utf-8')
+        except:
+            komanda = request.args.get('komanda', '').strip()
+            
+    if not komanda:
+        komanda = request.args.get('komanda', '').strip()
+
+    print(f'\n[Nuron AI] Gelen tam mesaj: "{komanda}"')
+    
+    if not komanda:
+        return "Mənə bir şey yazmadınız."
+
+    k_low = komanda.lower()
+
+    # ==========================================
+    # 📺 YOUTUBE VƏ MEDİA İDARƏETMƏSİ 
+    # ==========================================
+    if "youtube" in k_low and ("axtar" in k_low or "aç" in k_low or "ac" in k_low):
+        video_sual = k_low.replace("youtube-da", "").replace("youtube", "").replace("axtar", "").replace("aç", "").replace("ac", "").strip()
+        if video_sual:
+            try:
+                kodlasdirilmis_video = urllib.parse.quote(video_sual)
+                youtube_url = f"https://www.youtube.com/results?search_query={kodlasdirilmis_video}"
+                subprocess.Popen(f'start chrome {youtube_url}', shell=True)
+                return f"YouTube-da '{video_sual}' axtarılır və açılır! 📺"
+            except Exception as e:
+                return f"YouTube xətası: {e}"
+
+    elif "dayandır" in k_low or "dayandir" in k_low or "pauza" in k_low or "plej" in k_low or "başlat" in k_low and "video" in k_low:
+        media_tugmesi_bas(179) # Play/Pause kodu
+        return "Video dayandırıldı / başladıldı! ⏯️"
+
+    elif "səsi artır" in k_low or "sesi artir" in k_low or "səsi çoxalt" in k_low or "sesi coxalt" in k_low:
+        media_tugmesi_bas(175) # Səs artırma kodu
+        return "Kompyuterin səsi artırıldı! 🔊"
+
+    elif "səsi azalt" in k_low or "sesi azalt" in k_low or "səsi endir" in k_low:
+        media_tugmesi_bas(174) # Səs azaltma kodu
+        return "Kompyuterin səsi azaldıldı! 🔉"
+
+    elif "səsi kəs" in k_low or "sesi kes" in k_low or "səssiz" in k_low:
+        media_tugmesi_bas(173) # Mute kodu
+        return "Səs rejimi dəyişdirildi (Mute)! 🔇"
+
+    # ==========================================
+    # 🔌 SİSTEM İDARƏETMƏSİ (SÖNDÜR / YUXU / BAŞLAT)
+    # ==========================================
+    elif "söndür" in k_low or "sondur" in k_low:
+        os.system("shutdown /s /t 60")
+        return "Kompyuter 1 dəqiqə ərzində söndürüləcək! 🔌"
+            
+    elif "yuxu" in k_low or "yuxuya ver" in k_low:
+        os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
+        return "Kompyuter yuxu rejiminə keçirilir... 💤"
+
+    elif "başlat" in k_low or "baslat" in k_low or "restart" in k_low:
+        os.system("shutdown /r /t 60")
+        return "Kompyuter 1 dəqiqə ərzində yenidən başladılacaq... 🔄"
+
+    # ==========================================
+    # 🌐 GOOGLE CHROME-DA DƏQİQ AXTARIŞ
+    # ==========================================
+    elif "axtar" in k_low or "google" in k_low:
+        sual = k_low.replace("google-da", "").replace("google", "").replace("axtar", "").strip()
+        if sual:
+            try:
+                kodlasdirilmis_sual = urllib.parse.quote(sual)
+                search_url = f"https://www.google.com/search?q={kodlasdirilmis_sual}"
+                subprocess.Popen(f'start chrome {search_url}', shell=True)
+                return f"Google Chrome-da '{sual}' axtarılır! 🌐"
+            except Exception as e:
+                return f"Axtarış xətası: {e}"
+                
+    elif "chrome" in k_low or "brauzer" in k_low or "browser" in k_low:
+        try:
+            subprocess.Popen('start chrome', shell=True)
+            return "Google Chrome brauzeri açıldı! 🌐"
+        except:
+            return "Chrome başlatmaqda xəta oldu."
+
+    # ==========================================
+    # 📂 QALEREYA QOVLUĞUNU AÇMAQ
+    # ==========================================
+    elif "qalerya" in k_low or "qaleriya" in k_low or "qovluq" in k_low:
+        try:
+            subprocess.Popen(['explorer', 'C:\\Users\\User\\Desktop\\Qaleriya'])
+            return "Qalereya qovluğu ekrana gətirildi! 📂"
+        except Exception as e:
+            return f"Qovluq açılarkən xəta oldu: {e}"
+
+    # ==========================================
+    # 💼 OFİS PROQRAMLARI VƏ KALKULYATOR
+    # ==========================================
+    elif "word" in k_low or "yazi" in k_low or "bloknot" in k_low:
+        try:
+            subprocess.Popen(['cmd', '/c', 'start winword'])
+            return "Microsoft Word başladıldı! 📝"
+        except:
+            return "MS Word kompyuterinizdə tapılmadı."
+
+    elif "excel" in k_low or "cədvəl" in k_low or "cedvel" in k_low:
+        try:
+            subprocess.Popen(['cmd', '/c', 'start excel'])
+            return "Microsoft Excel açıldı! 📊"
+        except:
+            return "MS Excel kompyuterinizdə tapılmadı."
+
+    elif "powerpoint" in k_low or "prezentasiya" in k_low or "slayd" in k_low:
+        try:
+            subprocess.Popen(['cmd', '/c', 'start powerpnt'])
+            return "Microsoft PowerPoint açıldı! 🎦"
+        except:
+            return "MS PowerPoint kompyuterinizdə tapılmadı."
+
+    elif "paint" in k_low or "sekil" in k_low or "rəsm" in k_low or "resm" in k_low:
+        try:
+            subprocess.Popen(['cmd', '/c', 'start mspaint'])
+            return "Paint açıldı! 🎨"
+        except:
+            return "Paint açılmadı."
+
+    elif "kalkulyator" in k_low or "calc" in k_low:
+        subprocess.Popen(['cmd', '/c', 'start calc'])
+        return "Kalkulyator açıldı! 🧮"
+
+    # ==========================================
+    # 🧠 SÜNİ İNTELLEKT BEJNİ (GEMINI)
+    # ==========================================
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
+        data = {"contents": [{"parts": [{"text": komanda}]}]}
+        body = json.dumps(data, ensure_ascii=False).encode('utf-8')
+        req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json; charset=utf-8'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            res_json = json.loads(response.read().decode('utf-8'))
+            return res_json['candidates'][0]['content']['parts'][0]['text']
+    except Exception as e:
+        return f"Süni İntellektə bağlanarkən xəta oldu: {e}"
+
+if __name__ == '__main__':
+    app.run(host=Server IP)
